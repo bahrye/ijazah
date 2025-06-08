@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>body{display:flex;min-height:100vh;background-color:#f0f2f5}.sidebar{width:250px;background:#343a40;color:white;flex-shrink:0}.content{flex-grow:1;padding:20px}.sidebar .nav-link{color:rgba(255,255,255,.75);border-radius:.25rem;margin-bottom:.25rem}.sidebar .nav-link:hover{color:white;background-color:#495057}.sidebar .nav-link.active{color:white;background-color:#0d6efd}.main-view{display:none}.main-view.active{display:block}</style>
+  </head>
+  <body>
+    <div class="sidebar p-3 d-flex flex-column">
+      <div>
+        <a href="#" onclick="showView('dashboardView');return false;" class="d-flex align-items-center mb-3 text-white text-decoration-none"><i class="bi-card-list me-2 fs-4"></i><span class="fs-5">Nilai Ijazah</span></a><hr>
+        <ul class="nav nav-pills flex-column mb-auto">
+          <li class="nav-item"><a href="#" class="nav-link active" onclick="showView('dashboardView'); return false;"><i class="bi-speedometer2 me-2"></i>Dashboard</a></li>
+          <li><a href="#" class="nav-link" onclick="showView('siswaView'); return false;"><i class="bi-people-fill me-2"></i>Data Siswa</a></li>
+        </ul>
+      </div><hr>
+      <div class="dropdown">
+        <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" data-bs-toggle="dropdown"><i class="bi-person-circle me-2"></i><strong id="userEmail"></strong></a>
+        <ul class="dropdown-menu dropdown-menu-dark text-small shadow"><li><a class="dropdown-item" href="#" onclick="handleLogout()">Logout</a></li></ul>
+      </div>
+    </div>
+    <main class="content">
+      <h4 id="schoolName" class="mb-4"></h4>
+      <div id="dashboardView" class="main-view active">
+        <div class="card"><div class="card-body"><h5>Selamat Datang!</h5><p>Anda login sebagai <strong id="userEmail-2"></strong> di sekolah <strong id="schoolName-2"></strong>.</p><p class="mb-0">Gunakan menu di sebelah kiri untuk menavigasi aplikasi.</p></div></div>
+      </div>
+      <div id="siswaView" class="main-view">
+        <div class="card"><div class="card-body"><h5>Manajemen Data Siswa</h5>
+          <div class="mb-3"><button class="btn btn-success" onclick="handleDownloadTemplate()"><i class="bi-download me-2"></i>Unduh Templat</button> <button class="btn btn-info text-white" onclick="document.getElementById('file-input').click()"><i class="bi-upload me-2"></i>Impor Data Siswa</button> <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSiswaModal"><i class="bi-plus-circle me-2"></i>Tambah Siswa (Manual)</button><input type="file" id="file-input" style="display:none" onchange="handleFileUpload(this)" accept=".xlsx,.xls,.csv"></div>
+          <div id="import-loader" style="display:none" class="alert alert-warning"><div class="spinner-border spinner-border-sm me-2"></div>Sedang memproses file, mohon tunggu...</div>
+          <div class="table-responsive"><table class="table table-striped table-hover"><thead><tr><th>NISN</th><th>Nama Lengkap</th><th>Jenis Kelamin</th><th>Tempat, Tgl Lahir</th><th>Aksi</th></tr></thead><tbody id="siswaTableBody"></tbody></table></div>
+        </div></div>
+      </div>
+    </main>
+    <div class="modal fade" id="addSiswaModal" tabindex="-1">
+      <div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Tambah Siswa Baru</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <form id="addSiswaForm" class="row g-3">
+            <div class="col-md-6"><label class="form-label">NISN (Wajib)</label><input type="text" id="siswaNisn" class="form-control" required></div>
+            <div class="col-md-6"><label class="form-label">Nama Lengkap (Wajib)</label><input type="text" id="siswaNama" class="form-control" required></div>
+            <div class="col-md-6"><label class="form-label">NIS Lokal</label><input type="text" id="siswaNisLokal" class="form-control"></div>
+            <div class="col-md-6"><label class="form-label">Jenis Kelamin</label><select id="siswaJenisKelamin" class="form-select"><option value="">Pilih...</option><option value="L">Laki-laki</option><option value="P">Perempuan</option></select></div>
+            <div class="col-md-6"><label class="form-label">Tempat Lahir</label><input type="text" id="siswaTempatLahir" class="form-control"></div>
+            <div class="col-md-6"><label class="form-label">Tanggal Lahir</label><input type="date" id="siswaTanggalLahir" class="form-control"></div>
+            <div class="col-12"><label class="form-label">Alamat</label><textarea id="siswaAlamat" class="form-control"></textarea></div>
+            <div class="col-md-6"><label class="form-label">Tahun Masuk</label><input type="number" id="siswaTahunMasuk" class="form-control" placeholder="YYYY"></div>
+            <div class="col-md-6"><label class="form-label">Tahun Lulus</label><input type="number" id="siswaTahunLulus" class="form-control" placeholder="YYYY"></div>
+          </form>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="button" class="btn btn-primary" onclick="handleSaveSiswa()">Simpan</button></div>
+      </div></div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      const addSiswaModal = new bootstrap.Modal(document.getElementById("addSiswaModal"));
+      function showView(viewId){document.querySelectorAll(".main-view").forEach(v=>v.classList.remove("active"));const targetView=document.getElementById(viewId);if(targetView){targetView.classList.add("active")}else{return}document.querySelectorAll(".sidebar .nav-link").forEach(l=>l.classList.remove("active"));const targetLink=document.querySelector(`.sidebar a[onclick^="showView('${viewId}')"]`);if(targetLink)targetLink.classList.add("active");if(viewId==='siswaView'){loadDataSiswa()}}
+      function handleLogout(){google.script.run.withSuccessHandler(()=>window.location.reload()).logout()}
+      function handleDownloadTemplate(){google.script.run.withSuccessHandler(url=>window.open(url,"_blank")).getTemplateDownloadUrl()}
+      function handleFileUpload(fileInput){const file=fileInput.files[0];if(!file)return;const loader=document.getElementById('import-loader');loader.style.display='block';const reader=new FileReader();reader.onload=(e)=>{const fileData={fileName:file.name,mimeType:file.type,data:e.target.result.split(',')[1]};google.script.run.withSuccessHandler(response=>{loader.style.display='none';alert(response.message);if(response.status==='sukses'){setTimeout(loadDataSiswa,1000)}}).withFailureHandler(err=>{loader.style.display='none';alert("Error saat impor: "+JSON.stringify(err))}).importSiswaFromExcel(fileData)};reader.readAsDataURL(file);fileInput.value=''}
+      function handleSaveSiswa(){const data={nisn:document.getElementById("siswaNisn").value,nama:document.getElementById("siswaNama").value,nisLokal:document.getElementById("siswaNisLokal").value,jenisKelamin:document.getElementById("siswaJenisKelamin").value,tempatLahir:document.getElementById("siswaTempatLahir").value,tanggalLahir:document.getElementById("siswaTanggalLahir").value,alamat:document.getElementById("siswaAlamat").value,tahunMasuk:document.getElementById("siswaTahunMasuk").value,tahunLulus:document.getElementById("siswaTahunLulus").value};if(!data.nisn||!data.nama){alert("NISN dan Nama Lengkap wajib diisi!");return}const saveButton=document.querySelector("#addSiswaModal .btn-primary");saveButton.disabled=true;google.script.run.withSuccessHandler(response=>{saveButton.disabled=false;if(response.status==='sukses'){alert(response.message);addSiswaModal.hide();document.getElementById("addSiswaForm").reset();loadDataSiswa()}else{alert("Gagal: "+response.message)}}).withFailureHandler(err=>{saveButton.disabled=false;alert("Error: "+err.message)}).simpanDataSiswa(data)}
+      function loadDataSiswa(){const tableBody=document.getElementById("siswaTableBody");tableBody.innerHTML='<tr><td colspan="5" class="text-center">Memuat data...</td></tr>';google.script.run.withSuccessHandler(response=>{if(response.status==='sukses'){tableBody.innerHTML="";if(response.data.length===0){tableBody.innerHTML='<tr><td colspan="5" class="text-center">Belum ada data siswa.</td></tr>'}else{response.data.forEach(siswaRow=>{const nisn=siswaRow[2]||'-';const nama=siswaRow[3]||'-';const jenisKelamin=siswaRow[5]||'-';const tempatLahir=siswaRow[6]||'';const tanggalLahirRaw=siswaRow[7];let tglLahirFormatted="-";try{if(tanggalLahirRaw&&!isNaN(new Date(tanggalLahirRaw).getTime())){tglLahirFormatted=new Date(tanggalLahirRaw).toLocaleDateString("id-ID",{day:'2-digit',month:'long',year:'numeric'})}}catch(e){}const tempatTglLahir=tempatLahir?`${tempatLahir}, ${tglLahirFormatted}`:tglLahirFormatted;tableBody.innerHTML+=`<tr><td>${nisn}</td><td>${nama}</td><td>${jenisKelamin}</td><td>${tempatTglLahir}</td><td><button class="btn btn-sm btn-info">Detail</button></td></tr>`})}}else{tableBody.innerHTML=`<tr><td colspan="5" class="text-center text-danger">Gagal memuat data: ${response.message}</td></tr>`}}).withFailureHandler(err=>{tableBody.innerHTML=`<tr><td colspan="5" class="text-center text-danger">Error: ${JSON.stringify(err)}</td></tr>`}).getSiswaDataForSchool()}
+      document.addEventListener("DOMContentLoaded",function(){google.script.run.withSuccessHandler(session=>{if(session.isLoggedIn){document.getElementById("userEmail").innerText=session.email;document.getElementById("userEmail-2").innerText=session.email;document.getElementById("schoolName").innerText=session.namaSekolah;document.getElementById("schoolName-2").innerText=session.namaSekolah}else{handleLogout()}}).checkUserSession()});
+    </script>
+  </body>
+</html>
