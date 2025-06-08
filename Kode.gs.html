@@ -31,24 +31,14 @@ function doGet(e) {
 }
 
 function checkUserSession() {
-  try {
-    const userProps = PropertiesService.getUserProperties();
-    const email = userProps.getProperty('email');
-    const schoolId = userProps.getProperty('schoolId');
-    if (userProps.getProperty('isLoggedIn') === 'true' && email && schoolId) {
-      const schoolData = getSheetData(sheets.schools).find(row => row[0] === schoolId);
-      const userData = getSheetData(sheets.users).find(row => row[0] === email);
-      return {
-        status: 'sukses', isLoggedIn: true, email: email,
-        namaLengkap: userData ? userData[2] : "Pengguna",
-        role: userData ? userData[4] : "User",
-        schoolId: schoolId, namaSekolah: schoolData ? schoolData[1] : "Sekolah Tidak Ditemukan"
-      };
-    }
-    return { status: 'gagal', isLoggedIn: false };
-  } catch (e) {
-    return { status: 'gagal', isLoggedIn: false, message: e.message };
+  const userProps = PropertiesService.getUserProperties();
+  const email = userProps.getProperty('email');
+  const schoolId = userProps.getProperty('schoolId');
+  if (userProps.getProperty('isLoggedIn') === 'true' && email && schoolId) {
+    const schoolData = getSheetData(sheets.schools).find(row => row[0] === schoolId);
+    return { isLoggedIn: true, email: email, schoolId: schoolId, namaSekolah: schoolData ? schoolData[1] : "Sekolah Tidak Ditemukan" };
   }
+  return { isLoggedIn: false };
 }
 
 function logout() {
@@ -193,70 +183,6 @@ function importSiswaFromExcel(fileData) {
   }
 }
 
-function getSiswaById(siswaId) {
-  try {
-    const schoolId = PropertiesService.getUserProperties().getProperty('schoolId');
-    const data = getSheetData(sheets.siswa).find(row => row[0] === siswaId && row[1] === schoolId);
-    if (data) {
-      return { status: 'sukses', data: data };
-    } else {
-      return { status: 'gagal', message: 'Siswa tidak ditemukan.' };
-    }
-  } catch (e) {
-    return { status: 'gagal', message: e.message };
-  }
-}
-
-function updateDataSiswa(dataSiswa) {
-  try {
-    const sheet = sheets.siswa;
-    const data = sheet.getDataRange().getValues();
-    let rowIndexToUpdate = -1;
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === dataSiswa.siswaId) {
-        rowIndexToUpdate = i + 1;
-        break;
-      }
-    }
-    if (rowIndexToUpdate !== -1) {
-      const schoolId = data[rowIndexToUpdate - 1][1];
-      const newRowData = [
-        dataSiswa.siswaId, schoolId, dataSiswa.nisn, dataSiswa.nama, dataSiswa.nisLokal,
-        dataSiswa.jenisKelamin, dataSiswa.tempatLahir, dataSiswa.tanggalLahir,
-        dataSiswa.alamat, dataSiswa.tahunMasuk, dataSiswa.tahunLulus
-      ];
-      sheet.getRange(rowIndexToUpdate, 1, 1, newRowData.length).setValues([newRowData]);
-      return { status: 'sukses', message: 'Data siswa berhasil diperbarui.' };
-    } else {
-      return { status: 'gagal', message: 'Siswa tidak ditemukan untuk diperbarui.' };
-    }
-  } catch (e) {
-    return { status: 'gagal', message: 'Gagal memperbarui data: ' + e.message };
-  }
-}
-
-function hapusDataSiswa(siswaId) {
-  try {
-    const sheet = sheets.siswa;
-    const data = sheet.getDataRange().getValues();
-    let rowIndexToDelete = -1;
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === siswaId) {
-        rowIndexToDelete = i + 1;
-        break;
-      }
-    }
-    if (rowIndexToDelete !== -1) {
-      sheet.deleteRow(rowIndexToDelete);
-      return { status: 'sukses', message: 'Data siswa berhasil dihapus.' };
-    } else {
-      return { status: 'gagal', message: 'Data siswa tidak ditemukan.' };
-    }
-  } catch(e) {
-    return { status: 'gagal', message: 'Terjadi kesalahan saat menghapus: ' + e.message };
-  }
-}
-
 // =================================================================
 // FUNGSI HELPERS
 // =================================================================
@@ -264,6 +190,7 @@ function getSheetData(sheet) {
   if (!sheet || sheet.getLastRow() < 2) return [];
   return sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
 }
+
 function generateUniqueId() { return Utilities.getUuid(); }
 function generateOtp() { return Math.floor(100000 + Math.random() * 900000).toString(); }
 function sendOtpEmail(email, otp) { MailApp.sendEmail({ to: email, subject: "Kode Verifikasi Aplikasi Nilai Ijazah", htmlBody: `<p>Kode OTP Anda: </p><h2 style="text-align:center;">${otp}</h2>` }); }
