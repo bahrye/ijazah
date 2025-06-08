@@ -5,174 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <style>
-      body { background-color: #f8f9fa; }
-      .auth-container { max-width: 500px; margin-top: 5vh; }
-      .page { display: none; }
-      .page.active { display: block; }
-      .form-step { display: none; }
-      .form-step.active { display: block; }
-    </style>
-    <script>
-      const SCRIPT_URL = "<?= scriptUrl ?>";
-    </script>
+    <style>body{background-color:#f8f9fa;}.auth-container{max-width:500px;margin-top:5vh;}.page{display:none;}.page.active{display:block;}.form-step{display:none;}.form-step.active{display:block;}</style>
+    <script>const SCRIPT_URL = "<?= scriptUrl ?>";</script>
   </head>
   <body>
     <div class="container auth-container">
-      <div class="text-center mb-4">
-        <i class="bi-card-list" style="font-size: 3rem;"></i>
-        <h3>Aplikasi Nilai Ijazah</h3>
-      </div>
-      <div id="loader" class="text-center" style="display: none;">
-        <div class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-      </div>
+      <div class="text-center mb-4"><i class="bi-card-list" style="font-size:3rem;"></i><h3>Aplikasi Nilai Ijazah</h3></div>
+      <div id="loader" class="text-center" style="display:none;"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>
       <div id="loginPage" class="page active card p-4 shadow-sm">
         <h5 class="card-title text-center">Login</h5>
         <form id="loginForm">
-          <div class="mb-3">
-            <label for="loginEmail" class="form-label">Email</label>
-            <input type="email" class="form-control" id="loginEmail" required>
-          </div>
-          <div class="mb-3">
-            <label for="loginPassword" class="form-label">Password</label>
-            <input type="password" class="form-control" id="loginPassword" required>
-          </div>
+          <div class="mb-3"><label for="loginEmail" class="form-label">Email</label><input type="email" class="form-control" id="loginEmail" required></div>
+          <div class="mb-3"><label for="loginPassword" class="form-label">Password</label><input type="password" class="form-control" id="loginPassword" required></div>
           <button type="submit" class="btn btn-primary w-100">Login</button>
         </form>
-        <hr>
-        <p class="text-center mb-0">Belum punya akun untuk sekolah Anda?</p>
-        <button onclick="showPage('registerPage')" class="btn btn-outline-success w-100 mt-2">Daftarkan Sekolah Baru</button>
+        <hr><p class="text-center mb-0">Belum punya akun untuk sekolah Anda?</p><button onclick="showPage('registerPage')" class="btn btn-outline-success w-100 mt-2">Daftarkan Sekolah Baru</button>
       </div>
       <div id="registerPage" class="page card p-4 shadow-sm">
         <h5 class="card-title text-center">Pendaftaran Sekolah Baru</h5>
         <form id="registerForm">
           <div class="form-step active" id="step1">
             <h6>Langkah 1: Data Sekolah</h6>
-            <input type="text" id="regNamaSekolah" class="form-control mb-2" placeholder="Nama Sekolah" required>
-            <input type="text" id="regNPSN" class="form-control mb-2" placeholder="NPSN" required>
-            <select id="regJenjang" class="form-select mb-2" required>
-              <option value="">Pilih Jenjang</option>
-              <option value="MI">MI</option>
-              <option value="MTS">MTS</option>
-              <option value="MA">MA</option>
-            </select>
+            <input type="text" id="regNamaSekolah" class="form-control mb-2" placeholder="Nama Sekolah" required><input type="text" id="regNPSN" class="form-control mb-2" placeholder="NPSN" required>
+            <select id="regJenjang" class="form-select mb-2" required><option value="">Pilih Jenjang</option><option value="MI">MI</option><option value="MTS">MTS</option><option value="MA">MA</option></select>
             <textarea id="regAlamat" class="form-control mb-2" placeholder="Alamat Sekolah" required></textarea>
-            <input type="text" id="regNamaKepsek" class="form-control mb-2" placeholder="Nama Kepala Sekolah" required>
-            <input type="text" id="regNipKepsek" class="form-control mb-2" placeholder="NIP Kepala Sekolah (opsional)">
+            <input type="text" id="regNamaKepsek" class="form-control mb-2" placeholder="Nama Kepala Sekolah" required><input type="text" id="regNipKepsek" class="form-control mb-2" placeholder="NIP Kepala Sekolah (opsional)">
             <button type="button" onclick="nextStep(2)" class="btn btn-primary w-100">Selanjutnya</button>
           </div>
           <div class="form-step" id="step2">
             <h6>Langkah 2: Data Admin Sekolah</h6>
-            <input type="text" id="regAdminNama" class="form-control mb-2" placeholder="Nama Lengkap Anda" required>
-            <input type="email" id="regAdminEmail" class="form-control mb-2" placeholder="Email Anda" required>
-            <input type="password" id="regPassword" class="form-control mb-2" placeholder="Password" required>
-            <button type="button" onclick="nextStep(1)" class="btn btn-secondary me-2">Kembali</button>
-            <button type="submit" class="btn btn-success">Daftar</button>
+            <input type="text" id="regAdminNama" class="form-control mb-2" placeholder="Nama Lengkap Anda" required><input type="email" id="regAdminEmail" class="form-control mb-2" placeholder="Email Anda" required><input type="password" id="regPassword" class="form-control mb-2" placeholder="Password" required>
+            <button type="button" onclick="nextStep(1)" class="btn btn-secondary me-2">Kembali</button><button type="submit" class="btn btn-success">Daftar</button>
           </div>
         </form>
-        <hr>
-        <p class="text-center mb-0">Sudah punya akun?</p>
-        <button onclick="showPage('loginPage')" class="btn btn-outline-primary w-100 mt-2">Login di Sini</button>
+        <hr><p class="text-center mb-0">Sudah punya akun?</p><button onclick="showPage('loginPage')" class="btn btn-outline-primary w-100 mt-2">Login di Sini</button>
       </div>
       <div id="otpPage" class="page card p-4 shadow-sm">
         <h5 class="card-title text-center">Verifikasi Email</h5>
         <p class="text-center text-muted">Masukkan kode OTP 6 digit yang dikirim ke <strong id="otpEmail"></strong></p>
-        <form id="otpForm">
-          <input type="hidden" id="otpHiddenEmail">
-          <div class="mb-3">
-            <input type="text" class="form-control form-control-lg text-center" id="otpInput" maxlength="6" required>
-          </div>
-          <button type="submit" class="btn btn-primary w-100">Verifikasi</button>
-        </form>
+        <form id="otpForm"><input type="hidden" id="otpHiddenEmail"><div class="mb-3"><input type="text" class="form-control form-control-lg text-center" id="otpInput" maxlength="6" required></div><button type="submit" class="btn btn-primary w-100">Verifikasi</button></form>
       </div>
     </div>
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
-      <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header">
-          <strong class="me-auto" id="toastTitle">Notifikasi</strong>
-          <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header"><strong class="me-auto" id="toastTitle">Notifikasi</strong><button type="button" class="btn-close" data-bs-dismiss="toast"></button></div><div class="toast-body" id="toastBody"></div>
         </div>
-        <div class="toast-body" id="toastBody"></div>
-      </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-      const pages = document.querySelectorAll('.page');
-      const steps = document.querySelectorAll('.form-step');
-      const loader = document.getElementById('loader');
-      const toastEl = document.getElementById('liveToast');
-      const toast = new bootstrap.Toast(toastEl);
-      function showLoader(show) { loader.style.display = show ? 'block' : 'none'; }
-      function showPage(pageId) { pages.forEach(p => p.classList.remove('active')); document.getElementById(pageId).classList.add('active'); }
-      function nextStep(stepNum) { steps.forEach(s => s.classList.remove('active')); document.getElementById('step' + stepNum).classList.add('active'); }
-      function showToast(title, message, type = 'success') {
-        const toastHeader = toastEl.querySelector('.toast-header');
-        toastHeader.classList.remove('bg-success', 'bg-danger', 'text-white');
-        toastHeader.classList.add(type === 'success' ? 'bg-success' : 'bg-danger', 'text-white');
-        document.getElementById('toastTitle').innerText = title;
-        document.getElementById('toastBody').innerText = message;
-        toast.show();
-      }
-      document.getElementById('loginForm').addEventListener('submit', function (e) {
-        e.preventDefault();
-        showLoader(true);
-        const credentials = { email: document.getElementById('loginEmail').value, password: document.getElementById('loginPassword').value };
-        google.script.run.withSuccessHandler(response => {
-          showLoader(false);
-          if (response.status === 'sukses') {
-            window.top.location.href = SCRIPT_URL;
-          } else {
-            showToast('Login Gagal', response.message, 'danger');
-          }
-        }).withFailureHandler(err => {
-          showLoader(false);
-          showToast('Error', err.message, 'danger');
-        }).userLogin(credentials);
-      });
-      document.getElementById('registerForm').addEventListener('submit', function (e) {
-        e.preventDefault();
-        showLoader(true);
-        const data = {
-          namaSekolah: document.getElementById('regNamaSekolah').value, npsn: document.getElementById('regNPSN').value,
-          jenjang: document.getElementById('regJenjang').value, alamat: document.getElementById('regAlamat').value,
-          namaKepsek: document.getElementById('regNamaKepsek').value, nipKepsek: document.getElementById('regNipKepsek').value,
-          adminNama: document.getElementById('regAdminNama').value, adminEmail: document.getElementById('regAdminEmail').value,
-          password: document.getElementById('regPassword').value,
-        };
-        google.script.run.withSuccessHandler(response => {
-          showLoader(false);
-          if (response.status === 'sukses'){
-            document.getElementById('otpEmail').innerText = response.email;
-            document.getElementById('otpHiddenEmail').value = response.email;
-            showToast('Pendaftaran Berhasil', response.message);
-            showPage('otpPage');
-          } else {
-            showToast('Pendaftaran Gagal', response.message, 'danger');
-          }
-        }).withFailureHandler(err => {
-          showLoader(false);
-          showToast('Error', err.message, 'danger');
-        }).registerSchoolAndAdmin(data);
-      });
-      document.getElementById('otpForm').addEventListener('submit', function (e) {
-        e.preventDefault();
-        showLoader(true);
-        const data = { email: document.getElementById('otpHiddenEmail').value, otp: document.getElementById('otpInput').value };
-        google.script.run.withSuccessHandler(response => {
-          showLoader(false);
-          if (response.status === 'sukses') {
-            showToast('Verifikasi Berhasil', response.message);
-            showPage('loginPage');
-          } else {
-            showToast('Verifikasi Gagal', response.message, 'danger');
-          }
-        }).withFailureHandler(err => {
-          showLoader(false);
-          showToast('Error', err.message, 'danger');
-        }).verifyOtp(data);
-      });
+      const pages=document.querySelectorAll('.page'),steps=document.querySelectorAll('.form-step'),loader=document.getElementById('loader'),toastEl=document.getElementById('liveToast'),toast=new bootstrap.Toast(toastEl);function showLoader(t){loader.style.display=t?"block":"none"}function showPage(t){pages.forEach(t=>t.classList.remove("active")),document.getElementById(t).classList.add("active")}function nextStep(t){steps.forEach(t=>t.classList.remove("active")),document.getElementById("step"+t).classList.add("active")}function showToast(t,e,s="success"){const o=toastEl.querySelector(".toast-header");o.classList.remove("bg-success","bg-danger","text-white"),o.classList.add("success"===s?"bg-success":"bg-danger","text-white"),document.getElementById("toastTitle").innerText=t,document.getElementById("toastBody").innerText=e,toast.show()}document.getElementById("loginForm").addEventListener("submit",function(t){t.preventDefault(),showLoader(!0);const e={email:document.getElementById("loginEmail").value,password:document.getElementById("loginPassword").value};google.script.run.withSuccessHandler(t=>{showLoader(!1),"sukses"===t.status?window.top.location.href=SCRIPT_URL:showToast("Login Gagal",t.message,"danger")}).withFailureHandler(t=>{showLoader(!1),showToast("Error",t.message,"danger")}).userLogin(e)}),document.getElementById("registerForm").addEventListener("submit",function(t){t.preventDefault(),showLoader(!0);const e={namaSekolah:document.getElementById("regNamaSekolah").value,npsn:document.getElementById("regNPSN").value,jenjang:document.getElementById("regJenjang").value,alamat:document.getElementById("regAlamat").value,namaKepsek:document.getElementById("regNamaKepsek").value,nipKepsek:document.getElementById("regNipKepsek").value,adminNama:document.getElementById("regAdminNama").value,adminEmail:document.getElementById("regAdminEmail").value,password:document.getElementById("regPassword").value};google.script.run.withSuccessHandler(t=>{showLoader(!1),"sukses"===t.status?(document.getElementById("otpEmail").innerText=t.email,document.getElementById("otpHiddenEmail").value=t.email,showToast("Pendaftaran Berhasil",t.message),showPage("otpPage")):showToast("Pendaftaran Gagal",t.message,"danger")}).withFailureHandler(t=>{showLoader(!1),showToast("Error",t.message,"danger")}).registerSchoolAndAdmin(e)}),document.getElementById("otpForm").addEventListener("submit",function(t){t.preventDefault(),showLoader(!0);const e={email:document.getElementById("otpHiddenEmail").value,otp:document.getElementById("otpInput").value};google.script.run.withSuccessHandler(t=>{showLoader(!1),"sukses"===t.status?(showToast("Verifikasi Berhasil",t.message),showPage("loginPage")):showToast("Verifikasi Gagal",t.message,"danger")}).withFailureHandler(t=>{showLoader(!1),showToast("Error",t.message,"danger")}).verifyOtp(e)});
     </script>
   </body>
 </html>
