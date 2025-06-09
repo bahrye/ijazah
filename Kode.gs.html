@@ -47,7 +47,7 @@ function logout() {
 }
 
 // =================================================================
-// FUNGSI OTENTIKASI & REGISTRASI (DENGAN HASHING)
+// FUNGSI OTENTIKASI & REGISTRASI (TANPA HASHING)
 // =================================================================
 function registerSchoolAndAdmin(data) {
   try {
@@ -59,8 +59,8 @@ function registerSchoolAndAdmin(data) {
     sheets.schools.appendRow([schoolId, data.namaSekolah, data.npsn, data.jenjang, data.alamat, data.namaKepsek, data.nipKepsek]);
     const otp = generateOtp();
     const expiry = new Date().getTime() + (5 * 60 * 1000);
-    const passwordHash = hashPassword(data.password);
-    sheets.users.appendRow([data.adminEmail, passwordHash, data.adminNama, schoolId, "Admin", otp, expiry, "PENDING"]);
+    // --- PERUBAHAN ---: Menyimpan password sebagai teks biasa
+    sheets.users.appendRow([data.adminEmail, data.password, data.adminNama, schoolId, "Admin", otp, expiry, "PENDING"]);
     sheets.pengaturan.appendRow([generateUniqueId(), schoolId, "Bobot Ujian Madrasah (%)", 40]);
     sheets.pengaturan.appendRow([generateUniqueId(), schoolId, "Bobot Nilai Rapor (%)", 60]);
     sendOtpEmail(data.adminEmail, otp);
@@ -90,8 +90,11 @@ function userLogin(credentials) {
   const users = getSheetData(sheets.users);
   const user = users.find(u => u[0] === credentials.email);
   if (!user) return { status: "gagal", message: "Email atau password salah." };
-  const storedHash = user[1];
-  if (storedHash !== hashPassword(credentials.password)) return { status: "gagal", message: "Email atau password salah." };
+  // --- PERUBAHAN ---: Membandingkan password teks biasa
+  const storedPassword = user[1];
+  if (storedPassword !== credentials.password) {
+    return { status: "gagal", message: "Email atau password salah." };
+  }
   if (user[7] !== "TERVERIFIKASI") return { status: "gagal", message: "Akun Anda belum diverifikasi." };
   const userProps = PropertiesService.getUserProperties();
   userProps.setProperties({ 'isLoggedIn': 'true', 'email': user[0], 'schoolId': user[3] });
@@ -195,7 +198,11 @@ function getSheetData(sheet) {
 function generateUniqueId() { return Utilities.getUuid(); }
 function generateOtp() { return Math.floor(100000 + Math.random() * 900000).toString(); }
 function sendOtpEmail(email, otp) { MailApp.sendEmail({ to: email, subject: "Kode Verifikasi Aplikasi Nilai Ijazah", htmlBody: `<p>Kode OTP Anda: </p><h2 style="text-align:center;">${otp}</h2>` }); }
+
+// --- DIHAPUS ---: Fungsi hashPassword tidak lagi digunakan
+/*
 function hashPassword(password) {
   const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, password);
   return Utilities.bytesToHex(digest);
 }
+*/
