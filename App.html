@@ -5,7 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <style>body{display:flex;min-height:100vh;background-color:#f0f2f5}.sidebar{width:250px;background:#343a40;color:white;flex-shrink:0}.content{flex-grow:1;padding:20px}.sidebar .nav-link{color:rgba(255,255,255,.75);border-radius:.25rem;margin-bottom:.25rem}.sidebar .nav-link:hover{color:white;background-color:#495057}.sidebar .nav-link.active{color:white;background-color:#0d6efd}.main-view{display:none}.main-view.active{display:block}</style>
+    <style>
+        body{display:flex;min-height:100vh;background-color:#f0f2f5}
+        .sidebar{width:250px;background:#343a40;color:white;flex-shrink:0;overflow-y:auto}
+        .content{flex-grow:1;padding:20px;overflow-y:auto}
+        .sidebar .nav-link{color:rgba(255,255,255,.75);border-radius:.25rem;margin-bottom:.25rem}
+        .sidebar .nav-link:hover{color:white;background-color:#495057}
+        .sidebar .nav-link.active{color:white;background-color:#0d6efd}
+        .main-view{display:none}
+        .main-view.active{display:block}
+        .form-section-title { margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.25rem; color: #495057; border-bottom: 2px solid #dee2e6; padding-bottom: .5rem; }
+    </style>
+    <script>const SCRIPT_URL = "<?= scriptUrl ?>";</script>
   </head>
   <body>
     <div class="sidebar p-3 d-flex flex-column">
@@ -13,27 +24,94 @@
         <a href="#" onclick="showView('dashboardView');return false;" class="d-flex align-items-center mb-3 text-white text-decoration-none"><i class="bi-card-list me-2 fs-4"></i><span class="fs-5">Nilai Ijazah</span></a><hr>
         <ul class="nav nav-pills flex-column mb-auto">
           <li class="nav-item"><a href="#" class="nav-link active" onclick="showView('dashboardView'); return false;"><i class="bi-speedometer2 me-2"></i>Dashboard</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" onclick="showView('sekolahView'); return false;"><i class="bi-building me-2"></i>Data Sekolah</a></li>
           <li><a href="#" class="nav-link" onclick="showView('siswaView'); return false;"><i class="bi-people-fill me-2"></i>Data Siswa</a></li>
+          <li><a href="#" class="nav-link" onclick="showView('mapelView'); return false;"><i class="bi-book-half me-2"></i>Data Mapel</a></li>
+          <li><a href="#" class="nav-link" onclick="showView('raporView'); return false;"><i class="bi-journal-text me-2"></i>Data Rapor</a></li>
+          <li><a href="#" class="nav-link" onclick="showView('ujianView'); return false;"><i class="bi-pencil-square me-2"></i>Data Ujian</a></li>
+          <li><a href="#" class="nav-link" onclick="showView('pengaturanView'); return false;"><i class="bi-gear-fill me-2"></i>Pengaturan</a></li>
         </ul>
       </div><hr>
-      <div class="dropdown">
+      <div class="dropdown mt-auto">
         <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" data-bs-toggle="dropdown"><i class="bi-person-circle me-2"></i><strong id="userEmail"></strong></a>
         <ul class="dropdown-menu dropdown-menu-dark text-small shadow"><li><a class="dropdown-item" href="#" onclick="handleLogout()">Logout</a></li></ul>
       </div>
     </div>
     <main class="content">
+      <div id="loader" class="text-center" style="display: none;">
+          <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+              <span class="visually-hidden">Loading...</span>
+          </div>
+      </div>
+
       <h4 id="schoolName" class="mb-4"></h4>
+
       <div id="dashboardView" class="main-view active">
         <div class="card"><div class="card-body"><h5>Selamat Datang!</h5><p>Anda login sebagai <strong id="userEmail-2"></strong> di sekolah <strong id="schoolName-2"></strong>.</p><p class="mb-0">Gunakan menu di sebelah kiri untuk menavigasi aplikasi.</p></div></div>
       </div>
+      
+      <div id="sekolahView" class="main-view">
+        <div class="card">
+            <div class="card-body">
+                <h5>Data Sekolah</h5>
+                <form id="formSekolah" class="row g-3">
+                    
+                    <div class="form-section-title">Informasi Dasar</div>
+                    <div class="col-md-6"><label for="sekolahJenjang" class="form-label">Jenjang Madrasah</label><input type="text" class="form-control" id="sekolahJenjang" readonly></div>
+                    <div class="col-md-6"><label for="sekolahNama" class="form-label">Nama Madrasah (Wajib)</label><input type="text" class="form-control" id="sekolahNama" required></div>
+                    <div class="col-md-6"><label for="sekolahNpsn" class="form-label">NPSN</label><input type="text" class="form-control" id="sekolahNpsn"></div>
+                    <div class="col-md-6"><label for="sekolahNsm" class="form-label">NSM</label><input type="text" class="form-control" id="sekolahNsm"></div>
+                    
+                    <div class="form-section-title">Alamat</div>
+                    <div class="col-md-6"><label for="sekolahProvinsi" class="form-label">Provinsi</label><select class="form-select" id="sekolahProvinsi" onchange="handleWilayahChange('provinsi', this.value)"></select></div>
+                    <div class="col-md-6"><label for="sekolahKabupaten" class="form-label">Kabupaten/Kota</label><select class="form-select" id="sekolahKabupaten" onchange="handleWilayahChange('kabupaten', this.value)"></select></div>
+                    <div class="col-md-6"><label for="sekolahKecamatan" class="form-label">Kecamatan</label><select class="form-select" id="sekolahKecamatan" onchange="handleWilayahChange('kecamatan', this.value)"></select></div>
+                    <div class="col-md-6"><label for="sekolahKelurahan" class="form-label">Kelurahan/Desa</label><select class="form-select" id="sekolahKelurahan"></select></div>
+                    <div class="col-12"><label for="sekolahAlamat" class="form-label">Alamat Lengkap</label><textarea class="form-control" id="sekolahAlamat" rows="2" placeholder="Contoh: Jln. Merdeka No. 123, RT 01 RW 02"></textarea></div>
+
+                    <div class="form-section-title">Informasi Akademik & Tanda Tangan</div>
+                    <div class="col-md-6"><label for="sekolahTahunPelajaran" class="form-label">Tahun Pelajaran (Wajib)</label><select class="form-select" id="sekolahTahunPelajaran" required></select></div>
+                    <div class="col-md-6"><label for="sekolahTipeKepsek" class="form-label">Tipe Kepala Madrasah (Wajib)</label><select class="form-select" id="sekolahTipeKepsek" required><option value="">Pilih Tipe...</option><option value="Kepala Madrasah">Kepala Madrasah</option><option value="Plt. Kepala Madrasah">Plt. Kepala Madrasah</option></select></div>
+                    <div class="col-md-6"><label for="sekolahNamaKepsek" class="form-label">Nama Kepala Madrasah (Wajib)</label><input type="text" class="form-control" id="sekolahNamaKepsek" required></div>
+                    <div class="col-md-6"><label for="sekolahNipKepsek" class="form-label">NIP Kepala Madrasah</label><input type="text" class="form-control" id="sekolahNipKepsek" placeholder="Isi NIP atau kosongkan"></div>
+                    <div class="col-md-6"><label for="sekolahTempatTtd" class="form-label">Tempat Tanda Tangan (Wajib)</label><input type="text" class="form-control" id="sekolahTempatTtd" required></div>
+                    <div class="col-md-6"><label for="sekolahTanggalTtd" class="form-label">Tanggal Tanda Tangan (Wajib)</label><input type="date" class="form-control" id="sekolahTanggalTtd" required></div>
+                    <div class="col-12 mt-4"><button type="button" class="btn btn-primary" onclick="simpanSekolah()">Simpan Perubahan</button></div>
+                </form>
+            </div>
+        </div>
+      </div>
+
       <div id="siswaView" class="main-view">
         <div class="card"><div class="card-body"><h5>Manajemen Data Siswa</h5>
-          <div class="mb-3"><button class="btn btn-success" onclick="handleDownloadTemplate()"><i class="bi-download me-2"></i>Unduh Templat</button> <button class="btn btn-info text-white" onclick="document.getElementById('file-input').click()"><i class="bi-upload me-2"></i>Impor Data Siswa</button> <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSiswaModal"><i class="bi-plus-circle me-2"></i>Tambah Siswa (Manual)</button><input type="file" id="file-input" style="display:none" onchange="handleFileUpload(this)" accept=".xlsx,.xls,.csv"></div>
+          <div class="mb-3"><button class="btn btn-success" onclick="handleDownloadTemplate()"><i class="bi-download me-2"></i>Unduh Templat</button> <button class="btn btn-info text-white" onclick="document.getElementById('file-input').click()"><i class="bi-upload me-2"></i>Impor Data Siswa</button> <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSiswaModal"><i class="bi-plus-circle me-2"></i>Tambah Siswa</button><input type="file" id="file-input" style="display:none" onchange="handleFileUpload(this)" accept=".xlsx,.xls,.csv"></div>
           <div id="import-loader" style="display:none" class="alert alert-warning"><div class="spinner-border spinner-border-sm me-2"></div>Sedang memproses file, mohon tunggu...</div>
-          <div class="table-responsive"><table class="table table-striped table-hover"><thead><tr><th>NISN</th><th>Nama Lengkap</th><th>Jenis Kelamin</th><th>Tempat, Tgl Lahir</th><th>Aksi</th></tr></thead><tbody id="siswaTableBody"></tbody></table></div>
+          <div class="table-responsive"><table class="table table-striped table-hover"><thead><tr><th>NISN</th><th>Nama Lengkap</th><th>Aksi</th></tr></thead><tbody id="siswaTableBody"></tbody></table></div>
+        </div></div>
+      </div>
+      
+      <div id="mapelView" class="main-view"><div class="card"><div class="card-body"><h5>Manajemen Data Mapel</h5><p>Fitur ini sedang dalam pengembangan.</p></div></div></div>
+      <div id="raporView" class="main-view"><div class="card"><div class="card-body"><h5>Manajemen Data Rapor</h5><p>Fitur ini sedang dalam pengembangan.</p></div></div></div>
+      
+      <div id="ujianView" class="main-view">
+        <div class="card"><div class="card-body"><h5>Manajemen Data Ujian</h5>
+            <div class="mb-3"><label for="jenisUjian" class="form-label">Pilih Jenis Ujian:</label><select id="jenisUjian" class="form-select" style="max-width: 300px;"><option value="madrasah">Ujian Madrasah</option><option value="praktek">Ujian Praktek</option></select></div>
+            <p>Fitur input nilai ujian akan ditampilkan di sini.</p>
+        </div></div>
+      </div>
+
+      <div id="pengaturanView" class="main-view">
+        <div class="card"><div class="card-body"><h5>Pengaturan Bobot Nilai</h5>
+            <div class="row">
+                <div class="col-md-6"><label for="bobotUjian" class="form-label">Bobot Nilai Ujian (%)</label><input type="number" id="bobotUjian" class="form-control" oninput="aturBobot('ujian')"></div>
+                <div class="col-md-6"><label for="bobotRapor" class="form-label">Bobot Nilai Rapor (%)</label><input type="number" id="bobotRapor" class="form-control" oninput="aturBobot('rapor')"></div>
+            </div>
+            <div id="bobot-error" class="text-danger mt-2" style="display:none;">Total bobot harus 100%.</div>
+            <button class="btn btn-primary mt-3" onclick="simpanBobot()">Simpan Pengaturan</button>
         </div></div>
       </div>
     </main>
+
     <div class="modal fade" id="addSiswaModal" tabindex="-1">
       <div class="modal-dialog modal-lg"><div class="modal-content">
         <div class="modal-header"><h5 class="modal-title">Tambah Siswa Baru</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
@@ -53,16 +131,273 @@
         <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="button" class="btn btn-primary" onclick="handleSaveSiswa()">Simpan</button></div>
       </div></div>
     </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
       const addSiswaModal = new bootstrap.Modal(document.getElementById("addSiswaModal"));
-      function showView(viewId){document.querySelectorAll(".main-view").forEach(v=>v.classList.remove("active"));const targetView=document.getElementById(viewId);if(targetView){targetView.classList.add("active")}else{return}document.querySelectorAll(".sidebar .nav-link").forEach(l=>l.classList.remove("active"));const targetLink=document.querySelector(`.sidebar a[onclick^="showView('${viewId}')"]`);if(targetLink)targetLink.classList.add("active");if(viewId==='siswaView'){loadDataSiswa()}}
-      function handleLogout(){google.script.run.withSuccessHandler(()=>window.location.reload()).logout()}
-      function handleDownloadTemplate(){google.script.run.withSuccessHandler(url=>window.open(url,"_blank")).getTemplateDownloadUrl()}
-      function handleFileUpload(fileInput){const file=fileInput.files[0];if(!file)return;const loader=document.getElementById('import-loader');loader.style.display='block';const reader=new FileReader();reader.onload=(e)=>{const fileData={fileName:file.name,mimeType:file.type,data:e.target.result.split(',')[1]};google.script.run.withSuccessHandler(response=>{loader.style.display='none';alert(response.message);if(response.status==='sukses'){setTimeout(loadDataSiswa,1000)}}).withFailureHandler(err=>{loader.style.display='none';alert("Error saat impor: "+JSON.stringify(err))}).importSiswaFromExcel(fileData)};reader.readAsDataURL(file);fileInput.value=''}
-      function handleSaveSiswa(){const data={nisn:document.getElementById("siswaNisn").value,nama:document.getElementById("siswaNama").value,nisLokal:document.getElementById("siswaNisLokal").value,jenisKelamin:document.getElementById("siswaJenisKelamin").value,tempatLahir:document.getElementById("siswaTempatLahir").value,tanggalLahir:document.getElementById("siswaTanggalLahir").value,alamat:document.getElementById("siswaAlamat").value,tahunMasuk:document.getElementById("siswaTahunMasuk").value,tahunLulus:document.getElementById("siswaTahunLulus").value};if(!data.nisn||!data.nama){alert("NISN dan Nama Lengkap wajib diisi!");return}const saveButton=document.querySelector("#addSiswaModal .btn-primary");saveButton.disabled=true;google.script.run.withSuccessHandler(response=>{saveButton.disabled=false;if(response.status==='sukses'){alert(response.message);addSiswaModal.hide();document.getElementById("addSiswaForm").reset();loadDataSiswa()}else{alert("Gagal: "+response.message)}}).withFailureHandler(err=>{saveButton.disabled=false;alert("Error: "+err.message)}).simpanDataSiswa(data)}
-      function loadDataSiswa(){const tableBody=document.getElementById("siswaTableBody");tableBody.innerHTML='<tr><td colspan="5" class="text-center">Memuat data...</td></tr>';google.script.run.withSuccessHandler(response=>{if(response.status==='sukses'){tableBody.innerHTML="";if(response.data.length===0){tableBody.innerHTML='<tr><td colspan="5" class="text-center">Belum ada data siswa.</td></tr>'}else{response.data.forEach(siswaRow=>{const nisn=siswaRow[2]||'-';const nama=siswaRow[3]||'-';const jenisKelamin=siswaRow[5]||'-';const tempatLahir=siswaRow[6]||'';const tanggalLahirRaw=siswaRow[7];let tglLahirFormatted="-";try{if(tanggalLahirRaw&&!isNaN(new Date(tanggalLahirRaw).getTime())){tglLahirFormatted=new Date(tanggalLahirRaw).toLocaleDateString("id-ID",{day:'2-digit',month:'long',year:'numeric'})}}catch(e){}const tempatTglLahir=tempatLahir?`${tempatLahir}, ${tglLahirFormatted}`:tglLahirFormatted;tableBody.innerHTML+=`<tr><td>${nisn}</td><td>${nama}</td><td>${jenisKelamin}</td><td>${tempatTglLahir}</td><td><button class="btn btn-sm btn-info">Detail</button></td></tr>`})}}else{tableBody.innerHTML=`<tr><td colspan="5" class="text-center text-danger">Gagal memuat data: ${response.message}</td></tr>`}}).withFailureHandler(err=>{tableBody.innerHTML=`<tr><td colspan="5" class="text-center text-danger">Error: ${JSON.stringify(err)}</td></tr>`}).getSiswaDataForSchool()}
-      document.addEventListener("DOMContentLoaded",function(){google.script.run.withSuccessHandler(session=>{if(session.isLoggedIn){document.getElementById("userEmail").innerText=session.email;document.getElementById("userEmail-2").innerText=session.email;document.getElementById("schoolName").innerText=session.namaSekolah;document.getElementById("schoolName-2").innerText=session.namaSekolah}else{handleLogout()}}).checkUserSession()});
+      const loader = document.getElementById('loader');
+      function showLoader() { loader.style.display = 'block'; }
+      function hideLoader() { loader.style.display = 'none'; }
+
+      function showView(viewId){
+        document.querySelectorAll(".main-view").forEach(v=>v.classList.remove("active"));
+        document.getElementById(viewId)?.classList.add("active");
+        document.querySelectorAll(".sidebar .nav-link").forEach(l=>l.classList.remove("active"));
+        document.querySelector(`.sidebar a[onclick^="showView('${viewId}')"]`)?.classList.add("active");
+        
+        if(viewId==='siswaView') loadDataSiswa();
+        if(viewId==='pengaturanView') loadBobot();
+        if(viewId==='sekolahView') loadSekolahData();
+      }
+
+      function handleLogout(){
+          showLoader(); // Memberi tahu pengguna proses sedang berjalan
+          google.script.run.withSuccessHandler(() => {
+              // Metode ini paling andal untuk memaksa navigasi halaman utama
+              window.open(SCRIPT_URL, '_top');
+          }).withFailureHandler(err => {
+              hideLoader();
+              alert("Logout gagal: " + err.message);
+          }).logout();
+      }
+      function handleDownloadTemplate(){ google.script.run.withSuccessHandler(url=>window.open(url,"_blank")).getTemplateDownloadUrl(); }
+      
+      function handleFileUpload(fileInput){
+        const file=fileInput.files[0]; if(!file)return;
+        const importLoader=document.getElementById('import-loader'); importLoader.style.display='block';
+        const reader=new FileReader();
+        reader.onload=(e)=>{
+          const fileData={fileName:file.name,mimeType:file.type,data:e.target.result.split(',')[1]};
+          google.script.run.withSuccessHandler(response=>{
+            importLoader.style.display='none'; alert(response.message);
+            if(response.status==='sukses') setTimeout(loadDataSiswa, 500);
+          }).withFailureHandler(err=>{importLoader.style.display='none';alert("Error saat impor: "+err.message)}).importSiswaFromExcel(fileData);
+        };
+        reader.readAsDataURL(file);
+        fileInput.value='';
+      }
+
+      function handleSaveSiswa(){
+        const data={nisn:document.getElementById("siswaNisn").value,nama:document.getElementById("siswaNama").value,nisLokal:document.getElementById("siswaNisLokal").value,jenisKelamin:document.getElementById("siswaJenisKelamin").value,tempatLahir:document.getElementById("siswaTempatLahir").value,tanggalLahir:document.getElementById("siswaTanggalLahir").value,alamat:document.getElementById("siswaAlamat").value,tahunMasuk:document.getElementById("siswaTahunMasuk").value,tahunLulus:document.getElementById("siswaTahunLulus").value};
+        if(!data.nisn||!data.nama){alert("NISN dan Nama Lengkap wajib diisi!");return}
+        const saveButton=document.querySelector("#addSiswaModal .btn-primary"); saveButton.disabled=true;
+        google.script.run.withSuccessHandler(response=>{
+          saveButton.disabled=false; alert(response.message);
+          if(response.status==='sukses'){ addSiswaModal.hide(); document.getElementById("addSiswaForm").reset(); loadDataSiswa(); }
+        }).withFailureHandler(err=>{saveButton.disabled=false;alert("Error: "+err.message)}).simpanDataSiswa(data);
+      }
+
+      function loadDataSiswa(){
+        const tableBody=document.getElementById("siswaTableBody"); tableBody.innerHTML='<tr><td colspan="3" class="text-center">Memuat data...</td></tr>';
+        google.script.run.withSuccessHandler(response=>{
+          if(response.status==='sukses'){
+            tableBody.innerHTML="";
+            if(response.data.length===0){tableBody.innerHTML='<tr><td colspan="3" class="text-center">Belum ada data siswa.</td></tr>'}
+            else{ response.data.forEach(siswaRow=>{
+                const [siswaId, , nisn, nama] = siswaRow;
+                tableBody.innerHTML += `<tr><td>${nisn||'-'}</td><td>${nama||'-'}</td><td><button class="btn btn-sm btn-warning" onclick="editSiswa('${siswaId}')"><i class="bi bi-pencil-fill"></i> Edit</button> <button class="btn btn-sm btn-danger" onclick="hapusSiswa('${siswaId}', '${nama}')"><i class="bi bi-trash-fill"></i> Hapus</button></td></tr>`;
+              });
+            }
+          } else { tableBody.innerHTML=`<tr><td colspan="3" class="text-center text-danger">Gagal: ${response.message}</td></tr>` }
+        }).withFailureHandler(err=>{tableBody.innerHTML=`<tr><td colspan="3" class="text-center text-danger">Error: ${err.message}</td></tr>`}).getSiswaDataForSchool()
+      }
+
+      function editSiswa(siswaId) { alert("Fitur Edit untuk siswa dengan ID: " + siswaId + " belum diimplementasikan."); }
+      function hapusSiswa(siswaId, namaSiswa) {
+        if (confirm(`Apakah Anda yakin ingin menghapus data siswa: ${namaSiswa}?`)) {
+          showLoader();
+          google.script.run.withSuccessHandler(response => {
+            hideLoader(); alert(response.message);
+            if (response.status === 'sukses') { loadDataSiswa(); }
+          }).withFailureHandler(err => { hideLoader(); alert("Terjadi kesalahan: " + err.message); }).deleteDataSiswa(siswaId);
+        }
+      }
+      
+      async function loadSekolahData() {
+        showLoader();
+        google.script.run.withSuccessHandler(async response => {
+            hideLoader();
+            if (response.status === 'sukses') {
+                const data = response.data;
+                const options = response.options;
+                
+                document.getElementById('sekolahJenjang').value = data.jenjang || '';
+                document.getElementById('sekolahNama').value = data.namaSekolah ? data.namaSekolah.toUpperCase() : '';
+                document.getElementById('sekolahNpsn').value = data.npsn || '';
+                document.getElementById('sekolahNsm').value = data.nsm || '';
+                document.getElementById('sekolahAlamat').value = data.alamat || '';
+                document.getElementById('sekolahTipeKepsek').value = data.tipeKepsek || '';
+                document.getElementById('sekolahNamaKepsek').value = data.namaKepsek || '';
+                document.getElementById('sekolahNipKepsek').value = data.nipKepsek || '';
+                document.getElementById('sekolahTempatTtd').value = data.tempatTtd || '';
+                
+                if (data.tanggalTtd && !isNaN(new Date(data.tanggalTtd))) {
+                   const date = new Date(data.tanggalTtd);
+                   document.getElementById('sekolahTanggalTtd').value = date.toISOString().split('T')[0];
+                } else {
+                   document.getElementById('sekolahTanggalTtd').value = '';
+                }
+
+                const tpSelect = document.getElementById('sekolahTahunPelajaran');
+                tpSelect.innerHTML = '<option value="">Pilih Tahun...</option>';
+                options.tahunPelajaran.forEach(tp => {
+                    tpSelect.innerHTML += `<option value="${tp}" ${tp === data.tahunPelajaran ? 'selected' : ''}>${tp}</option>`;
+                });
+
+                await populateWilayahDropdown('provinsi', null, data.provinsi);
+                if (data.provinsi) {
+                  const provSelect = document.getElementById('sekolahProvinsi');
+                  const provCode = Array.from(provSelect.options).find(opt => opt.text === data.provinsi)?.value;
+                  if (provCode) {
+                    await populateWilayahDropdown('kabupaten', provCode, data.kabupaten);
+                    const kabSelect = document.getElementById('sekolahKabupaten');
+                    const kabCode = Array.from(kabSelect.options).find(opt => opt.text === data.kabupaten)?.value;
+                    if (kabCode) {
+                      await populateWilayahDropdown('kecamatan', kabCode, data.kecamatan);
+                      const kecSelect = document.getElementById('sekolahKecamatan');
+                      const kecCode = Array.from(kecSelect.options).find(opt => opt.text === data.kecamatan)?.value;
+                       if (kecCode) {
+                         await populateWilayahDropdown('kelurahan', kecCode, data.kelurahan);
+                       }
+                    }
+                  }
+                }
+
+            } else {
+                alert('Gagal memuat data sekolah: ' + response.message);
+            }
+        }).withFailureHandler(err => {
+            hideLoader();
+            alert('Error: ' + err.message);
+        }).getSekolahData();
+      }
+      
+      function simpanSekolah() {
+        const provSelect = document.getElementById('sekolahProvinsi');
+        const kabSelect = document.getElementById('sekolahKabupaten');
+        const kecSelect = document.getElementById('sekolahKecamatan');
+        const kelSelect = document.getElementById('sekolahKelurahan');
+
+        const data = {
+            namaSekolah: document.getElementById('sekolahNama').value.toUpperCase(),
+            npsn: document.getElementById('sekolahNpsn').value,
+            jenjang: document.getElementById('sekolahJenjang').value,
+            alamat: document.getElementById('sekolahAlamat').value,
+            namaKepsek: document.getElementById('sekolahNamaKepsek').value,
+            nipKepsek: document.getElementById('sekolahNipKepsek').value,
+            nsm: document.getElementById('sekolahNsm').value,
+            provinsi: provSelect.selectedIndex > 0 ? provSelect.options[provSelect.selectedIndex].text : '',
+            kabupaten: kabSelect.selectedIndex > 0 ? kabSelect.options[kabSelect.selectedIndex].text : '',
+            kecamatan: kecSelect.selectedIndex > 0 ? kecSelect.options[kecSelect.selectedIndex].text : '',
+            kelurahan: kelSelect.selectedIndex > 0 ? kelSelect.options[kelSelect.selectedIndex].text : '',
+            tahunPelajaran: document.getElementById('sekolahTahunPelajaran').value,
+            tipeKepsek: document.getElementById('sekolahTipeKepsek').value,
+            tempatTtd: document.getElementById('sekolahTempatTtd').value,
+            tanggalTtd: document.getElementById('sekolahTanggalTtd').value,
+        };
+        
+        if (!data.namaSekolah || !data.tahunPelajaran || !data.tipeKepsek || !data.namaKepsek || !data.tempatTtd || !data.tanggalTtd) {
+          alert('Mohon isi semua field yang ditandai (Wajib).');
+          return;
+        }
+
+        showLoader();
+        google.script.run.withSuccessHandler(response => {
+            hideLoader();
+            alert(response.message);
+            if (response.status === 'sukses') {
+                document.getElementById('schoolName').innerText = data.namaSekolah;
+            }
+        }).withFailureHandler(err => {
+            hideLoader();
+            alert('Error: ' + err.message);
+        }).simpanSekolahData(data);
+      }
+      
+      async function populateWilayahDropdown(level, parentCode, selectedValue) {
+          const selectElement = document.getElementById(`sekolah${level.charAt(0).toUpperCase() + level.slice(1)}`);
+          if (!selectElement) return;
+
+          selectElement.disabled = true;
+          selectElement.innerHTML = `<option value="">Memuat...</option>`;
+          
+          return new Promise((resolve, reject) => {
+            google.script.run.withSuccessHandler(options => {
+              if(options.error) {
+                alert(`Gagal memuat data ${level}: ${options.message}`);
+                reject();
+                return;
+              }
+
+              selectElement.innerHTML = `<option value="">Pilih ${level}...</option>`;
+              options.forEach(opt => {
+                const isSelected = opt.nama === selectedValue;
+                selectElement.innerHTML += `<option value="${opt.kode}" ${isSelected ? 'selected' : ''}>${opt.nama}</option>`;
+              });
+              selectElement.disabled = false;
+              resolve();
+            }).withFailureHandler(err => {
+              alert(`Error memuat ${level}: ${err.message}`);
+              reject();
+            }).getWilayah(level, parentCode);
+          });
+      }
+
+      function handleWilayahChange(level, parentCode) {
+        if (level === 'provinsi') {
+            document.getElementById('sekolahKabupaten').innerHTML = '<option value="">Pilih...</option>';
+            document.getElementById('sekolahKecamatan').innerHTML = '<option value="">Pilih...</option>';
+            document.getElementById('sekolahKelurahan').innerHTML = '<option value="">Pilih...</option>';
+            if(parentCode) populateWilayahDropdown('kabupaten', parentCode);
+        } else if (level === 'kabupaten') {
+            document.getElementById('sekolahKecamatan').innerHTML = '<option value="">Pilih...</option>';
+            document.getElementById('sekolahKelurahan').innerHTML = '<option value="">Pilih...</option>';
+            if(parentCode) populateWilayahDropdown('kecamatan', parentCode);
+        } else if (level === 'kecamatan') {
+            document.getElementById('sekolahKelurahan').innerHTML = '<option value="">Pilih...</option>';
+            if(parentCode) populateWilayahDropdown('kelurahan', parentCode);
+        }
+      }
+
+      function aturBobot(sumber) {
+        const bobotUjianEl = document.getElementById('bobotUjian'); const bobotRaporEl = document.getElementById('bobotRapor');
+        let valUjian = parseInt(bobotUjianEl.value) || 0;
+        if (sumber === 'ujian') { bobotRaporEl.value = 100 - valUjian; } else { bobotUjianEl.value = 100 - (parseInt(bobotRaporEl.value) || 0); }
+        document.getElementById('bobot-error').style.display = (parseInt(bobotUjianEl.value) + parseInt(bobotRaporEl.value) !== 100) ? 'block' : 'none';
+      }
+
+      function loadBobot() {
+        google.script.run.withSuccessHandler(response => {
+            if(response.status === 'sukses') {
+                document.getElementById('bobotUjian').value = response.data.bobotUjian;
+                document.getElementById('bobotRapor').value = response.data.bobotRapor;
+            } else { alert('Gagal memuat pengaturan bobot: ' + response.message); }
+        }).getPengaturanBobot();
+      }
+
+      function simpanBobot() {
+        const bobot = { bobotUjian: document.getElementById('bobotUjian').value, bobotRapor: document.getElementById('bobotRapor').value };
+        if (parseInt(bobot.bobotUjian) + parseInt(bobot.bobotRapor) !== 100) { alert("Total bobot harus 100%!"); return; }
+        google.script.run.withSuccessHandler(response => { alert(response.message); })
+          .withFailureHandler(err => { alert('Gagal menyimpan: ' + err.message); }).simpanPengaturanBobot(bobot);
+      }
+      
+      document.addEventListener("DOMContentLoaded",function(){
+          google.script.run.withSuccessHandler(session=>{
+              if(session.isLoggedIn){
+                  document.getElementById("userEmail").innerText=session.email;
+                  document.getElementById("userEmail-2").innerText=session.email;
+                  document.getElementById("schoolName").innerText=session.namaSekolah;
+                  document.getElementById("schoolName-2").innerText=session.namaSekolah;
+                  showView('dashboardView');
+              } else {
+                  // INI BAGIAN YANG DIPERBAIKI:
+                  // Jika sesi tidak valid saat buka halaman, langsung arahkan ke URL utama
+                  // tanpa memanggil handleLogout() lagi untuk mencegah loop.
+                  window.open(SCRIPT_URL, '_top');
+              }
+          }).checkUserSession();
+      });
     </script>
   </body>
 </html>
