@@ -10,7 +10,12 @@ const sheets = {
   rapor: ss.getSheetByName("NilaiRapor"),
   ujian: ss.getSheetByName("NilaiUjian"),
   pengaturan: ss.getSheetByName("Pengaturan"),
-  templateSiswa: ss.getSheetByName("TemplateSiswa")
+  templateSiswa: ss.getSheetByName("TemplateSiswa"),
+  // BARU: Tambahkan sheet wilayah
+  provinsi: ss.getSheetByName("Wilayah_Provinsi"),
+  kabupaten: ss.getSheetByName("Wilayah_Kabupaten"),
+  kecamatan: ss.getSheetByName("Wilayah_Kecamatan"),
+  kelurahan: ss.getSheetByName("Wilayah_Kelurahan")
 };
 
 // =================================================================
@@ -36,18 +41,22 @@ function checkUserSession() {
   const schoolId = userProps.getProperty('schoolId');
   if (userProps.getProperty('isLoggedIn') === 'true' && email && schoolId) {
     const schoolData = getSheetData(sheets.schools).find(row => row[0] === schoolId);
-    return { isLoggedIn: true, email: email, schoolId: schoolId, namaSekolah: schoolData ? schoolData[1] : "Sekolah Tidak Ditemukan" };
+    return { isLoggedIn: true, email: email, schoolId: schoolId, namaSekolah: schoolData ? schoolData[1] : "Sekolah Tidak Ditemukan", scriptUrl: ScriptApp.getService().getUrl() };
   }
   return { isLoggedIn: false };
 }
 
 function logout() {
-  PropertiesService.getUserProperties().deleteAllProperties();
-  return { status: "sukses" };
+  try {
+    PropertiesService.getUserProperties().deleteAllProperties();
+    return { status: "sukses" };
+  } catch(e) {
+    return { status: "gagal", message: e.message };
+  }
 }
 
 // =================================================================
-// FUNGSI OTENTIKASI & REGISTRASI (TANPA HASHING)
+// FUNGSI OTENTIKASI & REGISTRASI (TANPA HASH)
 // =================================================================
 function registerSchoolAndAdmin(data) {
   try {
@@ -55,14 +64,19 @@ function registerSchoolAndAdmin(data) {
     const schools = getSheetData(sheets.schools);
     if (users.some(u => u[0] === data.adminEmail)) return { status: "gagal", message: "Email ini sudah terdaftar." };
     if (schools.some(s => s[2] === data.npsn)) return { status: "gagal", message: "NPSN sekolah ini sudah terdaftar." };
+    
     const schoolId = "SCH-" + new Date().getTime();
     sheets.schools.appendRow([schoolId, data.namaSekolah, data.npsn, data.jenjang, data.alamat, data.namaKepsek, data.nipKepsek]);
+    
     const otp = generateOtp();
     const expiry = new Date().getTime() + (5 * 60 * 1000);
-    // --- PERUBAHAN ---: Menyimpan password sebagai teks biasa
-    sheets.users.appendRow([data.adminEmail, data.password, data.adminNama, schoolId, "Admin", otp, expiry, "PENDING"]);
-    sheets.pengaturan.appendRow([generateUniqueId(), schoolId, "Bobot Ujian Madrasah (%)", 40]);
-    sheets.pengaturan.appendRow([generateUniqueId(), schoolId, "Bobot Nilai Rapor (%)", 60]);
+    const plainPassword = data.password; 
+    
+    sheets.users.appendRow([data.adminEmail, plainPassword, data.adminNama, schoolId, "Admin", otp, expiry, "PENDING"]);
+    
+    sheets.pengaturan.appendRow([generateUniqueId(), schoolId, "Bobot Nilai Ujian", 40]);
+    sheets.pengaturan.appendRow([generateUniqueId(), schoolId, "Bobot Nilai Rapor", 60]);
+    
     sendOtpEmail(data.adminEmail, otp);
     return { status: "sukses", email: data.adminEmail, message: "Pendaftaran sekolah berhasil. Cek email untuk kode OTP." };
   } catch (e) {
@@ -75,11 +89,14 @@ function verifyOtp(data) {
     const users = getSheetData(sheets.users);
     let userRowIndex = -1;
     const user = users.find((row, index) => { if (row[0] === data.email) { userRowIndex = index + 2; return true; } return false; });
+
     if (!user) return { status: "gagal", message: "Email tidak ditemukan." };
     if (user[5] != data.otp) return { status: "gagal", message: "Kode OTP salah." };
     if (new Date().getTime() > user[6]) return { status: "gagal", message: "Kode OTP sudah kedaluwarsa." };
+    
     sheets.users.getRange(userRowIndex, 8).setValue("TERVERIFIKASI");
     sheets.users.getRange(userRowIndex, 6, 1, 2).clearContent();
+    
     return { status: "sukses", message: "Verifikasi berhasil. Silakan login." };
   } catch (e) {
     return { status: "gagal", message: "Terjadi kesalahan server: " + e.message };
@@ -89,20 +106,135 @@ function verifyOtp(data) {
 function userLogin(credentials) {
   const users = getSheetData(sheets.users);
   const user = users.find(u => u[0] === credentials.email);
+
   if (!user) return { status: "gagal", message: "Email atau password salah." };
-  // --- PERUBAHAN ---: Membandingkan password teks biasa
-  const storedPassword = user[1];
+
+  const storedPassword = user[1]; 
   if (storedPassword !== credentials.password) {
-    return { status: "gagal", message: "Email atau password salah." };
+      return { status: "gagal", message: "Email atau password salah." };
   }
+
   if (user[7] !== "TERVERIFIKASI") return { status: "gagal", message: "Akun Anda belum diverifikasi." };
+
   const userProps = PropertiesService.getUserProperties();
   userProps.setProperties({ 'isLoggedIn': 'true', 'email': user[0], 'schoolId': user[3] });
   return { status: "sukses" };
 }
 
+
 // =================================================================
-// FUNGSI CRUD & IMPORT/EXPORT
+// FUNGSI CRUD DATA SEKOLAH
+// =================================================================
+function getSekolahData() {
+  try {
+    const schoolId = PropertiesService.getUserProperties().getProperty('schoolId');
+    if (!schoolId) return { status: 'gagal', message: 'Sesi tidak valid.' };
+
+    const schoolDataRange = sheets.schools.getDataRange().getValues();
+    const schoolHeaders = schoolDataRange.shift();
+    const schoolRow = schoolDataRange.find(row => row[0] === schoolId);
+
+    if (!schoolRow) return { status: 'gagal', message: 'Data sekolah tidak ditemukan.' };
+
+    const data = schoolHeaders.reduce((obj, header, index) => {
+      obj[header] = schoolRow[index];
+      return obj;
+    }, {});
+    
+    // Generate Opsi Tahun Pelajaran
+    const currentYear = new Date().getFullYear();
+    const tahunPelajaranOptions = [
+      `${currentYear - 2}/${currentYear - 1}`,
+      `${currentYear - 1}/${currentYear}`,
+      `${currentYear}/${currentYear + 1}`,
+      `${currentYear + 1}/${currentYear + 2}`
+    ];
+    
+    return { status: 'sukses', data: data, options: { tahunPelajaran: tahunPelajaranOptions } };
+  } catch (e) {
+    return { status: 'gagal', message: 'Gagal mengambil data sekolah: ' + e.message };
+  }
+}
+
+function simpanSekolahData(data) {
+  try {
+    const schoolId = PropertiesService.getUserProperties().getProperty('schoolId');
+    if (!schoolId) return { status: 'gagal', message: 'Sesi tidak valid.' };
+    
+    if (!data.namaSekolah || !data.tahunPelajaran || !data.tipeKepsek || !data.namaKepsek || !data.tempatTtd || !data.tanggalTtd) {
+      return { status: 'gagal', message: 'Pastikan semua field yang wajib diisi tidak kosong.' };
+    }
+
+    const schoolSheetData = sheets.schools.getDataRange().getValues();
+    const schoolHeaders = schoolSheetData.shift();
+    const rowIndex = schoolSheetData.findIndex(row => row[0] === schoolId);
+    
+    if (rowIndex === -1) return { status: 'gagal', message: 'Data sekolah tidak ditemukan.' };
+    
+    const newRowData = schoolHeaders.map(header => data[header] !== undefined ? data[header] : '');
+    newRowData[0] = schoolId;
+    
+    sheets.schools.getRange(rowIndex + 2, 1, 1, newRowData.length).setValues([newRowData]);
+    
+    return { status: 'sukses', message: 'Data sekolah berhasil diperbarui.' };
+  } catch (e) {
+    return { status: 'gagal', message: 'Terjadi kesalahan saat menyimpan: ' + e.message };
+  }
+}
+
+// =================================================================
+// FUNGSI WILAYAH (BARU)
+// =================================================================
+function getWilayah(level, parentCode) {
+  try {
+    let sheet, filterIndex;
+    switch (level) {
+      case 'provinsi':
+        sheet = sheets.provinsi;
+        break;
+      case 'kabupaten':
+        sheet = sheets.kabupaten;
+        filterIndex = 2; // Kolom 'kode_provinsi'
+        break;
+      case 'kecamatan':
+        sheet = sheets.kecamatan;
+        filterIndex = 2; // Kolom 'kode_kabupaten'
+        break;
+      case 'kelurahan':
+        sheet = sheets.kelurahan;
+        filterIndex = 2; // Kolom 'kode_kecamatan'
+        break;
+      default:
+        return [];
+    }
+    
+    // Pengecekan 1: Pastikan sheet ditemukan
+    if (!sheet) {
+        console.error("Sheet untuk wilayah '" + level + "' tidak ditemukan.");
+        return [];
+    }
+    
+    // Pengecekan 2: Pastikan sheet memiliki data
+    if (sheet.getLastRow() < 2) {
+        return []; // Tidak ada data, hanya header atau kosong
+    }
+
+    const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+
+    // Memfilter data dan memastikan perbandingan string yang aman
+    const filteredData = parentCode ? data.filter(row => String(row[filterIndex]) === String(parentCode)) : data;
+
+    // Ubah ke format {kode, nama}
+    return filteredData.map(row => ({ kode: row[0], nama: row[1] }));
+
+  } catch (e) {
+    console.error(`Error di getWilayah (level: ${level}): ${e.message}`);
+    return { error: true, message: e.message };
+  }
+}
+
+// =================================================================
+// FUNGSI CRUD & IMPORT/EXPORT SISWA
 // =================================================================
 function getSiswaDataForSchool() {
   return getMySchoolData('siswa');
@@ -113,11 +245,14 @@ function getMySchoolData(dataType) {
     const userProps = PropertiesService.getUserProperties();
     const schoolId = userProps.getProperty('schoolId');
     if (!schoolId) return { status: 'gagal', message: 'Sesi tidak valid. Silakan login ulang.' };
+    
     let targetSheet;
     if (dataType === 'siswa') targetSheet = sheets.siswa;
     else if (dataType === 'mapel') targetSheet = sheets.mapel;
     else return { status: 'gagal', message: 'Tipe data tidak dikenal: ' + dataType };
+    
     if (!targetSheet) return { status: 'gagal', message: `Sheet untuk '${dataType}' tidak ditemukan.` };
+    
     const data = getSheetData(targetSheet).filter(row => row[1] === schoolId);
     return { status: 'sukses', data: data };
   } catch (e) {
@@ -130,6 +265,7 @@ function simpanDataSiswa(dataSiswa) {
     const userProps = PropertiesService.getUserProperties();
     const schoolId = userProps.getProperty('schoolId');
     if (!schoolId) return { status: 'gagal', message: 'Sesi tidak valid. Silakan login ulang.' };
+    
     const siswaId = generateUniqueId();
     sheets.siswa.appendRow([
       siswaId, schoolId, dataSiswa.nisn, dataSiswa.nama, dataSiswa.nisLokal,
@@ -139,6 +275,24 @@ function simpanDataSiswa(dataSiswa) {
     return { status: 'sukses', message: 'Data siswa berhasil disimpan.' };
   } catch (e) {
     return { status: 'gagal', message: 'Gagal menyimpan data siswa: ' + e.message };
+  }
+}
+
+function deleteDataSiswa(siswaId) {
+   try {
+    const schoolId = PropertiesService.getUserProperties().getProperty('schoolId');
+    if (!schoolId) return { status: 'gagal', message: 'Sesi tidak valid.' };
+
+    const data = sheets.siswa.getDataRange().getValues();
+    for (let i = data.length - 1; i > 0; i--) {
+        if (data[i][0] === siswaId && data[i][1] === schoolId) {
+            sheets.siswa.deleteRow(i + 1);
+            return { status: 'sukses', message: 'Data siswa berhasil dihapus.' };
+        }
+    }
+    return { status: 'gagal', message: 'Data siswa tidak ditemukan atau Anda tidak punya hak akses.' };
+  } catch (e) {
+    return { status: 'gagal', message: 'Gagal menghapus data: ' + e.message };
   }
 }
 
@@ -153,20 +307,18 @@ function getTemplateDownloadUrl() {
 function importSiswaFromExcel(fileData) {
   const schoolId = PropertiesService.getUserProperties().getProperty('schoolId');
   if (!schoolId) return { status: 'gagal', message: 'Sesi tidak valid.' };
+  
   try {
     const blob = Utilities.newBlob(Utilities.base64Decode(fileData.data), fileData.mimeType, fileData.fileName);
     const tempSheetFile = Drive.Files.insert({ title: `[TEMP] Import-${new Date().getTime()}` }, blob, { convert: true });
     const tempSpreadsheet = SpreadsheetApp.openById(tempSheetFile.id);
     const sheet = tempSpreadsheet.getSheets()[0];
     const data = sheet.getDataRange().getValues();
+    
     data.shift();
-    let importedCount = 0, skippedCount = 0;
     const siswaToAppend = data.reduce((acc, row) => {
       const [nisn, nama, nisLokal, jk, tempatLahir, tglLahir, alamat, thnMasuk, thnLulus] = row;
-      if (!nisn || !nama) {
-        skippedCount++;
-      } else {
-        importedCount++;
+      if (nisn && nama) {
         acc.push([
           generateUniqueId(), schoolId, nisn, nama, nisLokal || '', jk || '',
           tempatLahir || '', tglLahir || null, alamat || '', thnMasuk || '', thnLulus || ''
@@ -174,17 +326,147 @@ function importSiswaFromExcel(fileData) {
       }
       return acc;
     }, []);
+    
     if (siswaToAppend.length > 0) {
       sheets.siswa.getRange(sheets.siswa.getLastRow() + 1, 1, siswaToAppend.length, siswaToAppend[0].length).setValues(siswaToAppend);
     }
+    
     Drive.Files.remove(tempSheetFile.id);
-    let message = `Impor Selesai. ${importedCount} siswa berhasil diimpor.`;
-    if (skippedCount > 0) message += ` ${skippedCount} baris dilewati karena NISN/Nama kosong.`;
-    return { status: 'sukses', message: message };
+    
+    return { status: 'sukses', message: `Impor Selesai. ${siswaToAppend.length} siswa berhasil diimpor.` };
   } catch (e) {
     return { status: 'gagal', message: `Terjadi kesalahan saat impor: ${e.message}` };
   }
 }
+
+// =================================================================
+// FUNGSI PENGATURAN BOBOT
+// =================================================================
+function getPengaturanBobot() {
+  try {
+    const schoolId = PropertiesService.getUserProperties().getProperty('schoolId');
+    if (!schoolId) return { status: 'gagal', message: 'Sesi tidak valid.' };
+
+    const pengaturan = getSheetData(sheets.pengaturan);
+    const pengaturanSekolah = pengaturan.filter(row => row[1] === schoolId);
+
+    const bobotUjian = pengaturanSekolah.find(row => row[2] === "Bobot Nilai Ujian");
+    const bobotRapor = pengaturanSekolah.find(row => row[2] === "Bobot Nilai Rapor");
+
+    return {
+      status: 'sukses',
+      data: {
+        bobotUjian: bobotUjian ? bobotUjian[3] : 40,
+        bobotRapor: bobotRapor ? bobotRapor[3] : 60,
+      }
+    };
+  } catch (e) {
+    return { status: 'gagal', message: 'Gagal mengambil data bobot: ' + e.message };
+  }
+}
+
+function simpanPengaturanBobot(bobot) {
+  try {
+    const schoolId = PropertiesService.getUserProperties().getProperty('schoolId');
+    if (!schoolId) return { status: 'gagal', message: 'Sesi tidak valid.' };
+
+    const data = sheets.pengaturan.getDataRange().getValues();
+    let updatedUjian = false;
+    let updatedRapor = false;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === schoolId) {
+        if (data[i][2] === "Bobot Nilai Ujian") {
+          sheets.pengaturan.getRange(i + 1, 4).setValue(bobot.bobotUjian);
+          updatedUjian = true;
+        } else if (data[i][2] === "Bobot Nilai Rapor") {
+          sheets.pengaturan.getRange(i + 1, 4).setValue(bobot.bobotRapor);
+          updatedRapor = true;
+        }
+      }
+    }
+
+    if (!updatedUjian) {
+      sheets.pengaturan.appendRow([generateUniqueId(), schoolId, "Bobot Nilai Ujian", bobot.bobotUjian]);
+    }
+    if (!updatedRapor) {
+      sheets.pengaturan.appendRow([generateUniqueId(), schoolId, "Bobot Nilai Rapor", bobot.bobotRapor]);
+    }
+
+    return { status: 'sukses', message: 'Pengaturan bobot berhasil disimpan.' };
+  } catch (e) {
+    return { status: 'gagal', message: 'Gagal menyimpan pengaturan: ' + e.message };
+  }
+}
+
+
+// File: kode.gs
+
+// FUNGSI BARU UNTUK MENGAMBIL DATA SATU SISWA BERDASARKAN ID
+function getSiswaById(siswaId) {
+  try {
+    const sheet = sheets.siswa;
+    const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getDisplayValues();
+    const headers = sheets.siswa.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    
+    const siswaRow = data.find(row => row[0] === siswaId);
+    
+    if (!siswaRow) {
+      return { status: 'gagal', message: 'Siswa tidak ditemukan.' };
+    }
+    
+    // Ubah array menjadi objek agar lebih mudah diakses di client-side
+    const siswaObj = {};
+    headers.forEach((header, index) => {
+      siswaObj[header] = siswaRow[index];
+    });
+
+    return { status: 'sukses', data: siswaObj };
+  } catch(e) {
+    return { status: 'gagal', message: 'Error: ' + e.message };
+  }
+}
+
+// FUNGSI BARU UNTUK MEMPERBARUI DATA SISWA YANG ADA
+function updateDataSiswa(dataSiswa) {
+  try {
+    const schoolId = PropertiesService.getUserProperties().getProperty('schoolId');
+    if (!schoolId) return { status: 'gagal', message: 'Sesi tidak valid.' };
+    
+    const sheet = sheets.siswa;
+    const data = sheet.getDataRange().getValues();
+    
+    // Cari baris yang cocok berdasarkan siswaId dan schoolId
+    let rowIndex = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === dataSiswa.siswaId && data[i][1] === schoolId) {
+        rowIndex = i + 1; // +1 karena index array mulai dari 0, dan +1 lagi karena data mulai dari baris 2
+        break;
+      }
+    }
+    
+    if (rowIndex === -1) {
+      return { status: 'gagal', message: 'Data siswa tidak ditemukan atau Anda tidak berhak mengubahnya.' };
+    }
+    
+    // Siapkan data baru sesuai urutan kolom di sheet
+    const updatedRow = [
+      dataSiswa.siswaId, schoolId, dataSiswa.nisn, dataSiswa.nama, dataSiswa.nisLokal,
+      dataSiswa.jenisKelamin, dataSiswa.tempatLahir, dataSiswa.tanggalLahir,
+      dataSiswa.alamat, dataSiswa.tahunMasuk, dataSiswa.tahunLulus
+    ];
+    
+    sheet.getRange(rowIndex, 1, 1, updatedRow.length).setValues([updatedRow]);
+    
+    return { status: 'sukses', message: 'Data siswa berhasil diperbarui.' };
+  } catch(e) {
+    return { status: 'gagal', message: 'Gagal memperbarui data: ' + e.message };
+  }
+}
+// =================================================================
+// FUNGSI HELPERS
+// =================================================================
+// File: kode.gs
 
 // =================================================================
 // FUNGSI HELPERS
@@ -198,11 +480,3 @@ function getSheetData(sheet) {
 function generateUniqueId() { return Utilities.getUuid(); }
 function generateOtp() { return Math.floor(100000 + Math.random() * 900000).toString(); }
 function sendOtpEmail(email, otp) { MailApp.sendEmail({ to: email, subject: "Kode Verifikasi Aplikasi Nilai Ijazah", htmlBody: `<p>Kode OTP Anda: </p><h2 style="text-align:center;">${otp}</h2>` }); }
-
-// --- DIHAPUS ---: Fungsi hashPassword tidak lagi digunakan
-/*
-function hashPassword(password) {
-  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, password);
-  return Utilities.bytesToHex(digest);
-}
-*/
